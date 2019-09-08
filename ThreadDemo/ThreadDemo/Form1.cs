@@ -77,5 +77,63 @@ namespace ThreadDemo
             thread.Start();
 
         }
+        #region Task 跨控件访问
+
+     
+        /// <summary>
+        /// 普通方法;
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Button4_Click(object sender, EventArgs e)
+        {
+            Task task = new Task(() =>
+            {
+                this.lbl.Text = "来自task的数据跟新，多线程";
+            });
+            //task.Start();//这个会报错：线程间操作无效: 从不是创建控件“lbl”的线程访问它
+            task.Start(TaskScheduler.FromCurrentSynchronizationContext());//解决报错的方法
+        }
+        /// <summary>
+        /// 针对Ui耗时的情况;task.Start(TaskScheduler.FromCurrentSynchronizationContext())重载这种方式并不是很好
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Button5_Click(object sender, EventArgs e)
+        {
+            Task task = new Task(() =>
+            {
+                //模拟耗时(这个地方会卡住，等到完成后才能继续操作)
+                Thread.Sleep(5000);
+                this.lbl.Text = "来自task的数据跟新，多线程";
+            });
+            //task.Start();//这个会报错：线程间操作无效: 从不是创建控件“lbl”的线程访问它
+            task.Start(TaskScheduler.FromCurrentSynchronizationContext());//解决报错的方法
+        }
+        /// <summary>
+        /// 真的耗时的可以这样做
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Button6_Click(object sender, EventArgs e)
+        {
+            this.button4.Enabled = false;
+            this.lbl.Text = "数据更新中。。。。。。。。。。。。。";
+            Task task = Task.Factory.StartNew(() =>
+            {
+                //模拟耗时可以放到ThreadPool中
+                Thread.Sleep(5000);
+                
+            });
+
+            //在ContinueWith跟新数据
+            task.ContinueWith(t =>
+            {
+                this.lbl.Text = "来自task的数据跟新，多线程";
+                this.button4.Enabled = true;
+            },TaskScheduler.FromCurrentSynchronizationContext());//跟新操作到同步的上下文中
+        }
+        #endregion
     }
 }
