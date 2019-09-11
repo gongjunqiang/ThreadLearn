@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{B7295FF5-F0A0-4162-BFF1-CED9A273CEA3}</ProjectGuid>
+    <ProjectGuid>{61582D39-4D24-427F-AE68-C625DECDC367}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>Linq</RootNamespace>
-    <AssemblyName>Linq</AssemblyName>
+    <RootNamespace>IEnumberable</RootNamespace>
+    <AssemblyName>IEnumberable</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -43,9 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ExtendMethod.cs" />
-    <Compile Include="LinkLearn.cs" />
-    <Compile Include="Person.cs" />
+    <Compile Include="Garge.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
