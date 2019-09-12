@@ -54,12 +54,12 @@ namespace Linq
         /// </summary>
         public static void Test02()
         {
-            //var lst = from a in nums
-            //    where a % 2 != 0
-            //    orderby a descending
-            //    select a;
-            var lst = nums.Select(o => o > 200);
-            var lst1 = nums.Select(o => o);
+            var lst = from a in nums
+                      where a % 2 != 0
+                      select a;
+            Console.WriteLine(lst);
+            //var lst = nums.Select(o => o > 200);
+            //var lst1 = nums.Select(o => o);
             foreach (var a in lst)
             {
                 Console.WriteLine(a);
