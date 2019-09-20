@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,9 +32,15 @@ namespace EFLearn
             //NestQuery();
             //Console.WriteLine("----------------");
             //SuQuery();
-            SlelectQuery();
+            //SlelectQuery();
+            //Status();
+            //StatusTracking();
 
+            //SelectStudents();
+            //ExecSql();
 
+            //ExecProcedure();
+            ExecSelect();
             #endregion
 
 
@@ -271,13 +278,11 @@ namespace EFLearn
         {
             StudentManageDBEntities db = new StudentManageDBEntities();
             DateTime dt = Convert.ToDateTime("1800-01-11");
-
             var query1 = from o in db.Students
                 where o.StudentName.StartsWith("龚") && o.Gender == "女" && o.Birthday > dt
                 orderby o.Age descending
                 select new { o.StudentId, o.StudentName, o.Birthday, o.Gender, o.Age };
             List<Students> students = new List<Students>();
-
             foreach (var item in query1)
             {
                 students.Add(new Students
@@ -288,7 +293,6 @@ namespace EFLearn
                     Age = item.Age
                 });
             }
-
             foreach (var student in students)
             {
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", student.StudentId, student.StudentName, student.Gender, student.Age);
@@ -322,17 +326,7 @@ namespace EFLearn
                 join s in db.Students on o.StudentId equals s.StudentId
                 join c in db.StudentClass on s.ClassId equals c.ClassId
                 where s.Gender == "女" && s.StudentName.StartsWith("龚")
-                         select new
-                {
-                    s.StudentName,
-                    s.Gender,
-                    c.ClassName,
-                    o.CSharp,
-                    o.SQLServerDB
-                };
-
-
-
+                select new {s.StudentName, s.Gender, c.ClassName, o.CSharp, o.SQLServerDB};
             foreach (var student in query2)
             {
                 Console.WriteLine("{0}\t{1}\t{2}\t{3}", student.StudentName, student.Gender, student.ClassName, student.CSharp);
@@ -405,6 +399,50 @@ namespace EFLearn
         #endregion
 
         #region 状态跟踪在CURD中的影响何优化
+        //状态跟踪类型测试
+        static void Status()
+        {
+            StudentManageDBEntities db = new StudentManageDBEntities();
+            //创建一个对象：当前对象的状态为detached
+            Students student = new Students
+            {
+                StudentName = "龚均强",
+                Gender = "男",
+                Birthday = Convert.ToDateTime("1991-04-22"),
+                StudentIdNo = 520722199104221978,
+                CardNo = "2958141",
+                Age = 28,
+                PhoneNumber = "18408230331",
+                StudentAddress = "西华大学",
+                ClassId = 1,
+            };
+            Console.WriteLine(db.Entry(student).State.ToString());
+            //添加到缓存对象中：状态为Added
+            db.Students.Add(student);
+            Console.WriteLine(db.Entry(student).State.ToString());
+            //保存后：UnChanged
+            db.SaveChanges();
+            Console.WriteLine(db.Entry(student).State.ToString());
+        }
+        //状态跟踪与无状态跟踪
+        static void StatusTracking()
+        {
+            StudentManageDBEntities db = new StudentManageDBEntities();
+            //状态跟踪查询：UnChanged
+            var stu1 = (from o in db.Students select o).FirstOrDefault();
+            Console.WriteLine(db.Entry(stu1).State.ToString());
+
+            //无状态查询：detached  查询不被跟踪，好处：提升性能，返回实体不缓存，适合纯粹查询
+            var stu2 = db.Students.AsNoTracking().Select(o=>o).FirstOrDefault();
+            Console.WriteLine(db.Entry(stu2).State.ToString());
+        }
+
+        static void StatusTrackings()
+        {
+            StudentManageDBEntities db = new StudentManageDBEntities();
+            //禁用自动跟踪
+            db.Configuration.AutoDetectChangesEnabled = false;
+        }
 
 
 
@@ -412,14 +450,204 @@ namespace EFLearn
 
         #region CURD的标准优化
 
+        #region insert
+        static void AddStudents()
+        {
+
+            Students student = new Students
+            {
+                StudentName = "龚均强",
+                Gender = "男",
+                Birthday = Convert.ToDateTime("1991-04-22"),
+                StudentIdNo = 510722199104221978,
+                CardNo = "1958141",
+                Age = 28,
+                PhoneNumber = "18408230331",
+                StudentAddress = "西华大学",
+                ClassId = 1,
+            };
+
+            //第一种写法：
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                db.Entry(student).State = EntityState.Added;
+                db.SaveChanges();
+            }
+
+            //第二种写法：
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                //db.Students.Attach(student);//可以省略，将student实体添加到上下文中
+                db.Students.Add(student);
+                db.SaveChanges();
+            }
+        }
+        #endregion
+
+        #region update
+        static void UpdateStudents()
+        {
+            Students student = new Students
+            {
+                StudentName = "龚均强",
+                Gender = "男",
+                Birthday = Convert.ToDateTime("1991-04-22"),
+                StudentIdNo = 510722199104221978,
+                CardNo = "1958141",
+                Age = 28,
+                PhoneNumber = "18408230331",
+                StudentAddress = "西华大学",
+                ClassId = 1,
+            };
+
+            //第一种写法：构建全部属性对象修改
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                //db.Students.Attach(student);//可以省略，将student实体添加到上下文中
+                db.Entry(student).State = EntityState.Modified;
+                db.SaveChanges();
+            }
+
+            //第二种写法：先查询再修改
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                //查询对象
+                var stu = db.Students.FirstOrDefault(o => o.StudentId == 100012);
+                //修改对象属性
+                stu.StudentAddress = "红哇小区";
+                //提交修改
+                db.SaveChanges();//跟新到数据库（自动生成SQL语句）
+            }
+        }
+        #endregion
+
+        #region delete
+        static void DeleteStudents()
+        {
+            //根据主键构建一个对象
+            Students student = new Students
+            {
+                StudentId = 100000
+            };
+
+            //第一种写法：通过设置状态
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                db.Set<Students>().Attach(student);
+                db.Entry(student).State = EntityState.Deleted;
+                db.SaveChanges();
+            }
+
+            //第二种写法：通过remove方法
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                db.Set<Students>().Attach(student);
+                db.Students.Remove(student);
+                db.SaveChanges();//跟新到数据库（自动生成SQL语句）
+            }
+
+            //第三种写法：先查寻，再删除
+            
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                var stu = db.Students.Where(o => o.StudentId == 100000).FirstOrDefault();
+                db.Students.Remove(stu);
+                db.SaveChanges();//跟新到数据库（自动生成SQL语句）
+            }
+        }
+        #endregion
+
+        #region select
+        static void SelectStudents()
+        {
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                var stulist = from o in db.Students select o;
+                foreach (var student in stulist)
+                {
+                    Console.WriteLine(student.StudentName+"\t"+student.StudentId);
+                }
+                //查询学总数
+                Console.WriteLine("学生总数："+ db.Students.Count());
+                //使用缓存查询总数
+                Console.WriteLine("学生总数：" + db.Students.Local.Count());
+
+            }
+        }
+        #endregion
+
 
 
         #endregion
 
         #region EF执行原声的sql语句与存储过程
+        //EF执行原声SQL语句：增删改操作，使用DBContext对象的DataBase属性，该属性支持一系列数据库操作
+        static void ExecSql()
+        {
+            string sql1 = "update Students set StudentName='张某某' where StudentId=100002";
+            string sql2 = "update Students set StudentName=@StudentName where StudentId=@StudentId";
 
-        
+            SqlParameter[] paras = new SqlParameter[]
+            {
+                new SqlParameter("@StudentName","龚老师"),
+                new SqlParameter("@StudentId",100000),
+            };
 
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                var result1=db.Database.ExecuteSqlCommand(sql1);
+                var result2 = db.Database.ExecuteSqlCommand(sql2,paras);
+                Console.WriteLine("执行结果："+result1+"\t"+ result2);
+            }
+        }
+
+        //select
+        static void ExecSelect()
+        {
+            var sql = "select count(1) from Students";
+            var sql1 = "select * from Students where ClassId=@ClassId";
+
+            SqlParameter[] paras1 = new SqlParameter[]
+            {
+                new SqlParameter("@ClassId",1),
+            };
+
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                var result1 = db.Database.SqlQuery<int>(sql).ToList()[0];
+                var result2 = db.Database.SqlQuery<Students>(sql1, paras1);
+                foreach (var stu in result2)
+                {
+                    Console.WriteLine(stu.StudentName);
+                }
+                Console.WriteLine("总数："+result1);
+            }
+        }
+        //调用存储过程
+        static void ExecProcedure()
+        {
+            SqlParameter[] paras = new SqlParameter[]
+            {
+                new SqlParameter("@StudentName","龚老师"),
+                new SqlParameter("@StudentId",100001),
+            };
+
+            SqlParameter[] paras1 = new SqlParameter[]
+            {
+                new SqlParameter("@ClassId",1),
+            };
+
+            using (StudentManageDBEntities db = new StudentManageDBEntities())
+            {
+                var result1 = db.Database.ExecuteSqlCommand("execute usp_updateStu @StudentName,@StudentId", paras);
+                var result2 = db.Database.SqlQuery<Students>("execute usp_selectStu @ClassId", paras1);
+                foreach (var stu in result2)
+                {
+                    Console.WriteLine(stu.StudentName);
+                }
+                Console.WriteLine("第一个受影响行数：" + result1);
+            }
+        }
         #endregion
         #endregion
     }
